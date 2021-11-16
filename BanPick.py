@@ -113,12 +113,86 @@ class VCSBanPick:
         if (data["state"]=="pick"):
             self.PickNum += 1
             if (self.PickNum == 9):
-                self.play_60()
+                self.restart_60()
 
     def parseState(self,data):
         if (not self.Active): return
         if (data["champSelectActive"] != True): return
-        # if (data["state"]["state"]==""):
+        self.Timer = data["timer"]
+        self.ParseArrow(data)
+        self.ParseBan(data)
+        self.ParsePick(data)
+        self.ParsePlayerName(data)
+
+    def ParseBan(self,data):
+        for i in range(0,5):
+            if (data["blueTeam"]["bans"] == []): break
+            if (i+1<=len(data["blueTeam"]["bans"])):
+                if (data["blueTeam"]["bans"][i]["isActive"]):
+                    self.Ban[i]["Overlay"] = str(self.PathBan + "BAN00001.png")
+                    self.Ban[i]["Line"]  = str(self.PathLine + "Picking.png")
+                else:
+                    self.Ban[i]["Overlay"] = str(self.PathBan + "None.png")
+                    self.Ban[i]["Line"]  = str(self.PathLine + "Picked.png")
+                if (data["blueTeam"]["bans"][i]["champion"]["idName"] != ""):
+                    self.Ban[i]["Champion"] = str(self.PathS + data["blueTeam"]["bans"][i]["champion"]["idName"] + "_0.jpg")
+                else:
+                    self.Ban[i]["Champion"] = str(self.PathC + "None.png")
+            else:
+                self.Ban[i]["Champion"] = str(self.PathC + "None.png")
+                self.Ban[i]["Overlay"] = str(self.PathBan + "None.png")
+                self.Ban[i]["Line"] =  str(self.PathLine + "Pick.png")
+
+        for i in range(5,10):
+            if (data["redTeam"]["bans"] == []): break
+            if ((i%5+1)<=len(data["redTeam"]["bans"])):
+                if (data["redTeam"]["bans"][i%5]["isActive"]):
+                    self.Ban[i]["Overlay"] = str(self.PathBan + "BAN00001.png")
+                    self.Ban[i]["Line"]  = str(self.PathLine + "Picking.png")
+                else:
+                    self.Ban[i]["Overlay"] = str(self.PathBan + "None.png")
+                    self.Ban[i]["Line"]  = str(self.PathLine + "Picked.png")
+                if (data["redTeam"]["bans"][i%5]["champion"]["idName"] != ""):
+                    self.Ban[i]["Champion"] = str(self.PathS + data["redTeam"]["bans"][i%5]["champion"]["idName"] + "_0.jpg")
+                else:
+                    self.Ban[i]["Champion"] = str(self.PathC + "None.png")
+            else:
+                self.Ban[i]["Champion"] = str(self.PathC + "None.png")
+                self.Ban[i]["Overlay"] = str(self.PathBan + "None.png")
+                self.Ban[i]["Line"] =  str(self.PathLine + "Pick.png")
+
+    def ParsePick(self,data):
+        for i in range(0,5):
+            if (data["blueTeam"]["picks"] == []): break
+            if (data["blueTeam"]["picks"][i]["isActive"]):
+                self.Pick[i]["Overlay"] = str(self.PathPick + "PICK00001.png")
+            else:
+                self.Pick[i]["Overlay"] = str(self.PathPick + "None.png")
+            if (data["blueTeam"]["picks"][i]["champion"]["idName"] != ""):
+                self.Pick[i]["ChampionC"] = str(self.PathC + data["blueTeam"]["picks"][i]["champion"]["idName"] + "_centered_splash.jpg")
+                self.Pick[i]["ChampionL"] = str(self.PathL + data["blueTeam"]["picks"][i]["champion"]["idName"] + "_0.jpg")
+                self.Pick[i]["Champion"] = str(self.PathS + data["blueTeam"]["picks"][i]["champion"]["idName"] + "_0.jpg")
+            else:
+                self.Pick[i]["ChampionC"] = str(self.PathC + "None.png")
+                self.Pick[i]["ChampionL"] = str(self.PathL + "None.png")
+                self.Pick[i]["ChampionS"] = str(self.PathS + "None.png")
+
+        for i in range(5,10):
+            if (data["redTeam"]["picks"] == []): break
+            if (data["redTeam"]["picks"][i%5]["isActive"]):
+                self.Pick[i]["Overlay"] = str(self.PathPick + "PICK00001.png")
+            else:
+                self.Pick[i]["Overlay"] = str(self.PathPick + "None.png")
+            if (data["redTeam"]["picks"][i%5]["champion"]["idName"] != ""):
+                self.Pick[i]["ChampionC"] = str(self.PathC + data["redTeam"]["picks"][i%5]["champion"]["idName"] + "_centered_splash.jpg")
+                self.Pick[i]["ChampionL"] = str(self.PathL + data["redTeam"]["picks"][i%5]["champion"]["idName"] + "_0.jpg")
+                self.Pick[i]["ChampionS"] = str(self.PathS + data["redTeam"]["picks"][i%5]["champion"]["idName"] + "_0.jpg")
+            else:
+                self.Pick[i]["ChampionC"] = str(self.PathC + "None.png")
+                self.Pick[i]["ChampionL"] = str(self.PathL + "None.png")
+                self.Pick[i]["ChampionS"] = str(self.PathS + "None.png")
+                
+    def ParseArrow(self, data):
         if (data["blueTeam"]["isActive"]==True and data["redTeam"]["isActive"]==True):
             self.StateArrow = str(self.PathArrow + "Neutral.png")        
         elif (data["blueTeam"]["isActive"]==True):
@@ -127,27 +201,10 @@ class VCSBanPick:
             self.StateArrow = str(self.PathArrow + "Red.png")
         else:
             self.StateArrow = str(self.PathArrow + "Neutral.png")
-        self.Timer = data["timer"]
-        for i in range(0,5):
-            if (data["blueTeam"]["picks"] == []): return
-            self.TeamPlayer[i] = str(data["blueTeam"]["picks"][i]["displayName"]).split(' ')
-            if (data["blueTeam"]["picks"][i]["champion"]["idName"] != ""):
-                self.Pick[i]["ChampionC"] = str(self.PathC + data["blueTeam"]["picks"][i]["champion"]["idName"] + "_centered_splash.jpg")
-                self.Pick[i]["ChampionL"] = str(self.PathL + data["blueTeam"]["picks"][i]["champion"]["idName"] + "_0.jpg")
-                self.Pick[i]["ChampionS"] = str(self.PathS + data["blueTeam"]["picks"][i]["champion"]["idName"] + "_0.jpg")
-            else:
-                self.Pick[i]["ChampionC"] = str(self.PathC + "None.png")
-                self.Pick[i]["ChampionL"] = str(self.PathL + "None.png")
-                self.Pick[i]["ChampionS"] = str(self.PathS + "None.png")
-        for i in range(5,10):
-            if (data["redTeam"]["picks"] == []): return
-            self.TeamPlayer[i] = str(data["redTeam"]["picks"][i%5]["displayName"]).split(' ')
-            if (data["redTeam"]["picks"][i%5]["champion"]["idName"] != ""):
-                self.Pick[i]["ChampionC"] = str(self.PathC + data["redTeam"]["picks"][i%5]["champion"]["idName"] + "_centered_splash.jpg")
-                self.Pick[i]["ChampionL"] = str(self.PathL + data["redTeam"]["picks"][i%5]["champion"]["idName"] + "_0.jpg")
-                self.Pick[i]["ChampionS"] = str(self.PathS + data["redTeam"]["picks"][i%5]["champion"]["idName"] + "_0.jpg")
 
+    def ParsePlayerName(self,data):
         for i in range(0,5):
+            self.TeamPlayer[i] = str(data["blueTeam"]["picks"][i]["displayName"]).split(' ')
             if (i==4):
                 self.TeamName[0]=self.TeamPlayer[i][0]
                 for i in range(0,5):
@@ -157,6 +214,7 @@ class VCSBanPick:
                 break
                     
         for i in range(5,10):
+            self.TeamPlayer[i] = str(data["redTeam"]["picks"][i%5]["displayName"]).split(' ')
             if (i==9):
                 self.TeamName[1]=self.TeamPlayer[i][0]
                 for i in range(5,10):
@@ -178,7 +236,7 @@ class VCSBanPick:
         except:
             pass
 
-    def play_60(self):
+    def restart_60(self):
         self.vmixfunc("Play","Timer60")
         self.vmixfunc("Restart","Timer60")
         #self.vmixfunc("OverlayInput2In","Timer60")
