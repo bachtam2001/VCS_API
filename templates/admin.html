@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>VCS Admin Pannel</h2>
+<h3>Refresh (F5) Before Change</h3>
+<form action="/Admin" method="post">
+  <label for="titlelt">Left Turret:</label><br>
+  <input type="number" name="BTurret" min="0" value="{{Ingame.BlueBar['Turret']}}" required>
+  <input type="submit" value="Set">
+</form> 
+
+<form action="/Admin" method="post">
+  <label for="titlelk">Left Kill</label><br>
+  <input type="number" name="BKill" min="0" value="{{Ingame.BlueBar['Kill']}}" required>
+  <input type="submit" value="Set">
+</form> 
+
+<form action="/Admin" method="post">
+  <label for="titlelk">Right Turret:</label><br>
+  <input type="number" name="RTurret" min="0" value="{{Ingame.RedBar['Turret']}}" required>
+  <input type="submit" value="Set">
+</form> 
+
+<form action="/Admin" method="post">
+    <label for="titlert">Right Kill:</label><br>
+    <input type="number" name="RKill" min="0" value="{{Ingame.RedBar['Kill']}}" required>
+    <input type="submit" value="Set">
+</form> 
+
+</body>
+</html>
+
