@@ -17,6 +17,7 @@ class VCSIngame:
         let.start()
 
     def setData(self):
+        self.logfile = "./log/ingame/" + datetime.now().strftime("%d-%m-%Y %H-%M-%S")+".log"
         self.BlueBar = {
             "Kill": 0,
             "Gold": "2.5k",
@@ -34,12 +35,14 @@ class VCSIngame:
             "dragon2": self.dragonpath + "None.png",
             "dragon3": self.dragonpath + "None.png",
             "dragon4": self.dragonpath + "None.png",
+            "dragonsoul": self.dragonpath + "None.png",
         }
         self.RedDragon = {
             "dragon1": self.dragonpath + "None.png",
             "dragon2": self.dragonpath + "None.png",
             "dragon3": self.dragonpath + "None.png",
             "dragon4": self.dragonpath + "None.png",
+            "dragonsoul": self.dragonpath + "None.png",
         }
 
 
@@ -52,9 +55,8 @@ class VCSIngame:
         self.dragonpath = self._config["Dragon_Icon"]
 
     def start(self):
-        filename = "./log/ingame/" + datetime.now().strftime("%d-%m-%Y %H-%M-%S")+".log"
         while True:
-            self.file = open(filename, "ab+")
+            self.file = open(self.logfile, "ab+")
             asyncio.run(self.process())
             self.file.close()
 
@@ -105,34 +107,67 @@ class VCSIngame:
                 self.RedBar["Turret"] += 1
             elif (self.event["sourceTeam"] == "Chaos"):
                 self.BlueBar["Turret"] += 1   
-        elif (self.event["eventname"] == "OnKillDragon_Spectator"):
+        elif (self.event["eventname"] == "OnKillDragon_Spectator"): # Dragon Event
             if (self.event["sourceTeam"] == "Order"):
                 if (self.event["other"] == "SRU_Dragon_Air"):
                     self.BlueDragon["dragon"+str(self.NumDragonBlue)] = self.dragonpath + "Air.png"
-                if (self.event["other"] == "SRU_Dragon_Fire"):
+                    if (self.NumDragonBlue==4):
+                        self.BlueDragon["dragonsoul"] = self.dragonpath + "Air_Soul.png"
+                elif (self.event["other"] == "SRU_Dragon_Fire"):
                     self.BlueDragon["dragon"+str(self.NumDragonBlue)] = self.dragonpath + "Fire.png"
-                if (self.event["other"] == "SRU_Dragon_Water"):
+                    if (self.NumDragonBlue==4):
+                        self.BlueDragon["dragonsoul"] = self.dragonpath + "Fire_Soul.png"
+                elif (self.event["other"] == "SRU_Dragon_Water"):
                     self.BlueDragon["dragon"+str(self.NumDragonBlue)] = self.dragonpath + "Water.png"
-                if (self.event["other"] == "SRU_Dragon_Earth"):
+                    if (self.NumDragonBlue==4):
+                        self.BlueDragon["dragonsoul"] = self.dragonpath + "Water_Soul.png"
+                elif (self.event["other"] == "SRU_Dragon_Earth"):
                     self.BlueDragon["dragon"+str(self.NumDragonBlue)] = self.dragonpath + "Earth.png"
-                if (self.event["other"] == "SRU_Dragon_Elder"):
+                    if (self.NumDragonBlue==4):
+                        self.BlueDragon["dragonsoul"] = self.dragonpath + "Earth_Soul.png"
+                elif (self.event["other"] == "SRU_Dragon_Hextech"):
+                    self.BlueDragon["dragon"+str(self.NumDragonBlue)] = self.dragonpath + "Hextech.png"
+                    if (self.NumDragonBlue==4):
+                        self.BlueDragon["dragonsoul"] = self.dragonpath + "Hextech_Soul.png"
+                elif (self.event["other"] == "SRU_Dragon_Chemtech"):
+                    self.BlueDragon["dragon"+str(self.NumDragonBlue)] = self.dragonpath + "Chemtech.png"
+                    if (self.NumDragonBlue==4):
+                        self.BlueDragon["dragonsoul"] = self.dragonpath + "Chemtech_Soul.png"
+                elif (self.event["other"] == "SRU_Dragon_Elder"): # Elder Blue Event
                     self.vmixfunc("OverlayInput4In","Elder Team 1")
                     return
                 self.NumDragonBlue += 1
             elif (self.event["sourceTeam"] == "Chaos"):
                 if (self.event["other"] == "SRU_Dragon_Air"):
                     self.RedDragon["dragon"+str(self.NumDragonRed)] = self.dragonpath + "Air.png"
-                if (self.event["other"] == "SRU_Dragon_Fire"):
+                    if (self.NumDragonRed==4):
+                        self.RedDragon["dragonsoul"] = self.dragonpath + "Air_Soul.png"
+                elif (self.event["other"] == "SRU_Dragon_Fire"):
                     self.RedDragon["dragon"+str(self.NumDragonRed)] = self.dragonpath + "Fire.png"
-                if (self.event["other"] == "SRU_Dragon_Water"):
+                    if (self.NumDragonRed==4):
+                        self.RedDragon["dragonsoul"] = self.dragonpath + "Fire_Soul.png"
+                elif (self.event["other"] == "SRU_Dragon_Water"):
                     self.RedDragon["dragon"+str(self.NumDragonRed)] = self.dragonpath + "Water.png"
-                if (self.event["other"] == "SRU_Dragon_Earth"):
+                    if (self.NumDragonRed==4):
+                        self.RedDragon["dragonsoul"] = self.dragonpath + "Water_Soul.png"
+                elif (self.event["other"] == "SRU_Dragon_Earth"):
                     self.RedDragon["dragon"+str(self.NumDragonRed)] = self.dragonpath + "Earth.png"
-                if (self.event["other"] == "SRU_Dragon_Elder"):
+                    if (self.NumDragonRed==4):
+                        self.RedDragon["dragonsoul"] = self.dragonpath + "Earth_Soul.png"
+                elif (self.event["other"] == "SRU_Dragon_Hextech"):
+                    self.RedDragon["dragon"+str(self.NumDragonRed)] = self.dragonpath + "Hextech.png"
+                    if (self.NumDragonRed==4):
+                        self.RedDragon["dragonsoul"] = self.dragonpath + "Hextech_Soul.png"
+                elif (self.event["other"] == "SRU_Dragon_Chemtech"):
+                    self.RedDragon["dragon"+str(self.NumDragonRed)] = self.dragonpath + "Chemtech.png"
+                    if (self.NumDragonRed==4):
+                        self.RedDragon["dragonsoul"] = self.dragonpath + "Chemtech_Soul.png"
+                elif (self.event["other"] == "SRU_Dragon_Elder"): # Elder Red Event
                     self.vmixfunc("OverlayInput4In","Elder Team 2")
                     return
                 self.NumDragonRed += 1
-        elif (self.event["eventname"] == "OnKillWorm_Spectator"): #Baron
+
+        elif (self.event["eventname"] == "OnKillWorm_Spectator"): #Baron Event
             if (self.event["sourceTeam"] == "Order"):
                    self.vmixfunc("OverlayInput3In","Baron Team 1")
             elif (self.event["sourceTeam"] == "Chaos"):

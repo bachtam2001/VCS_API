@@ -20,7 +20,6 @@ class VCSBanPick:
         self.StateArrow = str(self.PathArrow + "Neutral.png")  
         self.TeamName = ["",""]
         self.TeamPlayer = []
-        self.Active = False
         self.ClearData()
         self.connect()
         
@@ -49,8 +48,6 @@ class VCSBanPick:
         self.PathS = self._config["Champ_Square"]
 
     def on_message(self, ws, message):
-        self.file.write(message)
-        self.file.write("\n\n\n")
         data = json.loads(message)
         if(data["eventType"]=="heartbeat"): return
         if(data["eventType"]=="newState"): 
@@ -61,18 +58,17 @@ class VCSBanPick:
             self.CSStarted()
         if(data["eventType"]=="champSelectEnded"):
             self.CSEnded()
+        self.file.write(message)
+        self.file.write("\n\n")
 
-    def CSStarted(self):    
-        self.ClearData()             
-        self.Active = True       
+    def CSStarted(self):
+        print("Ban Pick Started.\n")
+        self.ClearData()          
         self.BanNum = 0
-        self.PickNum = 0
-        self.Ban[0]["Overlay"] = str(self.PathBan + "BAN00001.png")
-        self.Ban[0]["Line"] =  str(self.PathLine + "Picking.png")      
-        self.ClearData()
+        self.PickNum = 0   
 
     def CSEnded(self):
-        self.Active = False
+        print("Ban Pick Ended.\n")
         self.BanNum = 0
         self.PickNum = 0
 
@@ -90,7 +86,6 @@ class VCSBanPick:
                 "Line": str(self.PathLine + "Pick.png")
             }
             Pick = {
-                "Name" : "PLAYER",
                 "Overlay": str(self.PathPick + "None.png"),
                 "ChampionC": str(self.PathC + "None.png"),
                 "ChampionL": str(self.PathL + "None.png"),
@@ -102,10 +97,7 @@ class VCSBanPick:
             self.TeamPlayer.append(Name)
 
     def parseAction(self,data):
-        self.restart_30()
-        if (data["state"]=="none"):
-            self.Active = True
-            self.ClearData()            
+        self.restart_30()      
 
         if (data["state"]=="ban"):
             self.BanNum += 1
@@ -117,7 +109,6 @@ class VCSBanPick:
                 self.restart_60()
 
     def parseState(self,data):
-        if (not self.Active): return
         if (data["champSelectActive"] != True): return
         self.Timer = data["timer"]
         self.ParseArrow(data)
@@ -173,7 +164,7 @@ class VCSBanPick:
                 if (data["blueTeam"]["picks"][i]["champion"]["idName"] != ""):
                     self.Pick[i]["ChampionC"] = str(self.PathC + data["blueTeam"]["picks"][i]["champion"]["idName"] + "_centered_splash.jpg")
                     self.Pick[i]["ChampionL"] = str(self.PathL + data["blueTeam"]["picks"][i]["champion"]["idName"] + "_0.jpg")
-                    self.Pick[i]["Champion"] = str(self.PathS + data["blueTeam"]["picks"][i]["champion"]["idName"] + "_0.jpg")
+                    self.Pick[i]["ChampionS"] = str(self.PathS + data["blueTeam"]["picks"][i]["champion"]["idName"] + "_0.jpg")
                 else:
                     self.Pick[i]["ChampionC"] = str(self.PathC + "None.png")
                     self.Pick[i]["ChampionL"] = str(self.PathL + "None.png")
@@ -217,24 +208,33 @@ class VCSBanPick:
 
     def ParsePlayerName(self,data):
         for i in range(0,5):
-            self.TeamPlayer[i] = str(data["blueTeam"]["picks"][i]["displayName"]).split(' ')
-            if (i==4):
-                self.TeamName[0]=self.TeamPlayer[i][0]
-                for i in range(0,5):
-                    self.TeamPlayer[i].remove(self.TeamName[0])
-                break
-            if (self.TeamPlayer[i][0]!=self.TeamPlayer[i+1][0]):
-                break
+            if (i+1<=len(data["blueTeam"]["picks"])):
+                self.TeamPlayer[i] = str(data["blueTeam"]["picks"][i]["displayName"]).split(' ')
+        for i in range(5,10):
+            if ((i%5+1)<=len(data["redTeam"]["picks"])):
+                self.TeamPlayer[i] = str(data["redTeam"]["picks"][i%5]["displayName"]).split(' ')
+
+        for i in range(0,5):
+            if (i+1<=len(data["blueTeam"]["picks"])):
+                if (i==4):
+                    self.TeamName[0]=self.TeamPlayer[i][0]
+                    for i in range(0,5):
+                        self.TeamPlayer[i].pop(0)
+                    break
+                if (self.TeamPlayer[0][0]!=self.TeamPlayer[i][0]):
+                    break
                     
         for i in range(5,10):
-            self.TeamPlayer[i] = str(data["redTeam"]["picks"][i%5]["displayName"]).split(' ')
-            if (i==9):
-                self.TeamName[1]=self.TeamPlayer[i][0]
-                for i in range(5,10):
-                    self.TeamPlayer[i].remove(self.TeamName[1])
-                break
-            if (self.TeamPlayer[i][0]!=self.TeamPlayer[i+1][0]):
-                break
+            if ((i%5+1)<=len(data["redTeam"]["picks"])):
+                if (i==9):
+                    self.TeamName[1]=self.TeamPlayer[i][0]
+                    for i in range(5,10):
+                        self.TeamPlayer[i].pop(0)
+                    break
+                if (self.TeamPlayer[5][0]!=self.TeamPlayer[i][0]):
+                    break
+                    
+        #print(self.TeamPlayer)
         for i in range(10):
             self.TeamPlayer[i] = ' '.join(self.TeamPlayer[i])
 

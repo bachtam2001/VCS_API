@@ -25,8 +25,9 @@ def index():
     /Pick : Get Champion Pick <br>
     /Team : Get Team Name <br>
     /Player : Get Player Name <br>
-    /State : Get State and Timer <br>
-    /Inage : Get Ingame Gold and Turret <br>
+    /State : Get State and Timer Ban Pick <br>
+    /Ingame : Get Ingame Gold and Turret <br>
+    /Timer : Get Ingame Timer<br>
     '''
 
 @app.route('/Ban')

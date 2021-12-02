@@ -50,7 +50,6 @@ class VCSTimer:
                 continue
             data = rp.json() 
             self.live = self.convertLoLTime(data["time"])
-            time.sleep(0.5)
         
     def getGold(self):
         while True:
