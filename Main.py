@@ -74,16 +74,16 @@ def editIngame():
             Ingame.RedBar["Turret"] = request.form["RTurret"]
         if ("DragonBlue1" in request.form):
             if (request.form["DragonBlue1"]!="None"):
-                Ingame.NumDragonBlue=1
-            Ingame.BlueDragon["dragon1"] = Ingame.dragonpath + request.form["DragonBlue1"] + ".png"
-            if (request.form["DragonBlue2"]!="None"):
                 Ingame.NumDragonBlue=2
-            Ingame.BlueDragon["dragon2"] = Ingame.dragonpath + request.form["DragonBlue2"] + ".png"        
-            if (request.form["DragonBlue3"]!="None"):
+            else:
+                Ingame.NumDragonBlue=1
+            if (request.form["DragonBlue2"]!="None"):
                 Ingame.NumDragonBlue=3
-            Ingame.BlueDragon["dragon3"] = Ingame.dragonpath + request.form["DragonBlue3"] + ".png"        
-            if (request.form["DragonBlue4"]!="None"):
+            if (request.form["DragonBlue3"]!="None"):
                 Ingame.NumDragonBlue=4
+            Ingame.BlueDragon["dragon1"] = Ingame.dragonpath + request.form["DragonBlue1"] + ".png"
+            Ingame.BlueDragon["dragon2"] = Ingame.dragonpath + request.form["DragonBlue2"] + ".png"        
+            Ingame.BlueDragon["dragon3"] = Ingame.dragonpath + request.form["DragonBlue3"] + ".png"
             Ingame.BlueDragon["dragon4"] = Ingame.dragonpath + request.form["DragonBlue4"] + ".png"
             if (request.form["DragonBlueSoul"]!="None"):
                 Ingame.BlueDragon["dragonsoul"] = Ingame.dragonpath + request.form["DragonBlueSoul"] + "_Soul.png"
@@ -91,16 +91,16 @@ def editIngame():
                 Ingame.BlueDragon["dragonsoul"] = Ingame.dragonpath + request.form["DragonBlueSoul"] + ".png"
         if ("DragonRed1" in request.form):
             if (request.form["DragonRed1"]!="None"):
-                Ingame.NumDragonRed=1
-            Ingame.RedDragon["dragon1"] = Ingame.dragonpath + request.form["DragonRed1"] + ".png"
-            if (request.form["DragonRed2"]!="None"):
                 Ingame.NumDragonRed=2
-            Ingame.RedDragon["dragon2"] = Ingame.dragonpath + request.form["DragonRed2"] + ".png"        
+            else:
+                Ingame.NumDragonRed=1
+            if (request.form["DragonRed2"]!="None"):
+                Ingame.NumDragonRed=3       
             if (request.form["DragonRed3"]!="None"):
-                Ingame.NumDragonRed=3
-            Ingame.RedDragon["dragon3"] = Ingame.dragonpath + request.form["DragonRed3"] + ".png"        
-            if (request.form["DragonRed4"]!="None"):
                 Ingame.NumDragonRed=4
+            Ingame.RedDragon["dragon1"] = Ingame.dragonpath + request.form["DragonRed1"] + ".png"
+            Ingame.RedDragon["dragon2"] = Ingame.dragonpath + request.form["DragonRed2"] + ".png" 
+            Ingame.RedDragon["dragon3"] = Ingame.dragonpath + request.form["DragonRed3"] + ".png"        
             Ingame.RedDragon["dragon4"] = Ingame.dragonpath + request.form["DragonRed4"] + ".png"
             if (request.form["DragonRedSoul"]!="None"):
                 Ingame.RedDragon["dragonsoul"] = Ingame.dragonpath + request.form["DragonRedSoul"] + "_Soul.png"
