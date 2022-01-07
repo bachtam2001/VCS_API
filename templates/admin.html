@@ -4,29 +4,131 @@
 
 <h2>VCS Admin Pannel</h2>
 <h3>Refresh (F5) Before Change</h3>
-<form action="/Admin" method="post">
-  <label for="titlelt">Left Turret:</label><br>
-  <input type="number" name="BTurret" min="0" value="{{Ingame.BlueBar['Turret']}}" required>
-  <input type="submit" value="Set">
-</form> 
-
-<form action="/Admin" method="post">
-  <label for="titlelk">Left Kill</label><br>
-  <input type="number" name="BKill" min="0" value="{{Ingame.BlueBar['Kill']}}" required>
-  <input type="submit" value="Set">
-</form> 
-
-<form action="/Admin" method="post">
-  <label for="titlelk">Right Turret:</label><br>
-  <input type="number" name="RTurret" min="0" value="{{Ingame.RedBar['Turret']}}" required>
-  <input type="submit" value="Set">
-</form> 
-
-<form action="/Admin" method="post">
-    <label for="titlert">Right Kill:</label><br>
-    <input type="number" name="RKill" min="0" value="{{Ingame.RedBar['Kill']}}" required>
-    <input type="submit" value="Set">
-</form> 
+<div style="display:block; width:100%;">
+	<div style="width:40%; float: left; display: inline-block;">
+		<form action="/Admin" method="post">
+			<label for="titlelt">Left Turret:</label><br>
+			<input type="number" name="BTurret" min="0" value="{{Ingame.BlueBar['Turret']}}" required><br><br>
+			<label for="titlelk">Left Kill</label><br>
+			<input type="number" name="BKill" min="0" value="{{Ingame.BlueBar['Kill']}}" required><br><br>
+			<label for="titlelk">Right Turret:</label><br>
+			<input type="number" name="RTurret" min="0" value="{{Ingame.RedBar['Turret']}}" required><br><br>
+			<label for="titlert">Right Kill:</label><br>
+			<input type="number" name="RKill" min="0" value="{{Ingame.RedBar['Kill']}}" required><br><br>
+			<input type="submit" value="Set">
+		</form> 
+	</div>	
+	<div style="width:30%; float: left; display: inline-block;">
+		<form action="/Admin" method="post">
+			<label>Dragon Blue 1:</label><br>
+			<select name="DragonBlue1">
+				<option value="None">None</option>
+				<option value="Earth">Earth</option>
+				<option value="Water">Water</option>
+				<option value="Air">Air</option>
+				<option value="Fire">Fire</option>
+				<option value="Hextech">Hextech</option>
+				<option value="Chemtech">Chemtech</option>
+			</select><br><br>
+			<label>Dragon Blue 2:</label><br>
+			<select name="DragonBlue2">
+				<option value="None">None</option>
+				<option value="Earth">Earth</option>
+				<option value="Water">Water</option>
+				<option value="Air">Air</option>
+				<option value="Fire">Fire</option>
+				<option value="Hextech">Hextech</option>
+				<option value="Chemtech">Chemtech</option>
+			</select><br><br>
+			<label>Dragon Blue 3:</label><br>
+			<select name="DragonBlue3">
+				<option value="None">None</option>
+				<option value="Earth">Earth</option>
+				<option value="Water">Water</option>
+				<option value="Air">Air</option>
+				<option value="Fire">Fire</option>
+				<option value="Hextech">Hextech</option>
+				<option value="Chemtech">Chemtech</option>
+			</select><br><br>
+			<label>Dragon Blue 4:</label><br>
+			<select name="DragonBlue4">
+				<option value="None">None</option>
+				<option value="Earth">Earth</option>
+				<option value="Water">Water</option>
+				<option value="Air">Air</option>
+				<option value="Fire">Fire</option>
+				<option value="Hextech">Hextech</option>
+				<option value="Chemtech">Chemtech</option>
+			</select><br><br>
+			<label>Dragon Soul Blue:</label><br>
+			<select name="DragonBlueSoul">
+				<option value="None">None</option>
+				<option value="Earth">Earth</option>
+				<option value="Water">Water</option>
+				<option value="Air">Air</option>
+				<option value="Fire">Fire</option>
+				<option value="Hextech">Hextech</option>
+				<option value="Chemtech">Chemtech</option>
+			</select><br><br>
+			<input type="submit" value="Set">
+		</form> 
+	</div>
+	<div style="width:30%; float:left; display: inline-block;">
+		<form action="/Admin" method="post">
+			<label>Dragon Red 1:</label><br>
+			<select name="DragonRed1">
+				<option value="None">None</option>
+				<option value="Earth">Earth</option>
+				<option value="Water">Water</option>
+				<option value="Air">Air</option>
+				<option value="Fire">Fire</option>
+				<option value="Hextech">Hextech</option>
+				<option value="Chemtech">Chemtech</option>
+			</select><br><br>
+			<label>Dragon Red 2:</label><br>
+			<select name="DragonRed2">
+				<option value="None">None</option>
+				<option value="Earth">Earth</option>
+				<option value="Water">Water</option>
+				<option value="Air">Air</option>
+				<option value="Fire">Fire</option>
+				<option value="Hextech">Hextech</option>
+				<option value="Chemtech">Chemtech</option>
+			</select><br><br>
+			<label>Dragon Red 3:</label><br>
+			<select name="DragonRed3">
+				<option value="None">None</option>
+				<option value="Earth">Earth</option>
+				<option value="Water">Water</option>
+				<option value="Air">Air</option>
+				<option value="Fire">Fire</option>
+				<option value="Hextech">Hextech</option>
+				<option value="Chemtech">Chemtech</option>
+			</select><br><br>
+			<label>Dragon Red 4:</label><br>
+			<select name="DragonRed4">
+				<option value="None">None</option>
+				<option value="Earth">Earth</option>
+				<option value="Water">Water</option>
+				<option value="Air">Air</option>
+				<option value="Fire">Fire</option>
+				<option value="Hextech">Hextech</option>
+				<option value="Chemtech">Chemtech</option>
+			</select><br><br>
+			<label>Dragon Soul Red:</label><br>
+			<select name="DragonRedSoul">
+				<option value="None">None</option>
+				<option value="Earth">Earth</option>
+				<option value="Water">Water</option>
+				<option value="Air">Air</option>
+				<option value="Fire">Fire</option>
+				<option value="Hextech">Hextech</option>
+				<option value="Chemtech">Chemtech</option>
+			</select><br><br>
+			<input type="submit" value="Set">
+		</form> 
+	</div>
+  </div>
 
 </body>
 </html>

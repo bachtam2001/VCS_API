@@ -256,12 +256,12 @@ class VCSBanPick:
 
     def on_error(self, ws, error):
         #print("Ban Pick Websocket Connection error.")
+        self.connect()
         return
 
     def on_close(self, ws):
         self.ClearData()
         #print("Ban Pick Websocket Connection closed.\n")
-        self.connect()
 
     def on_open(self, ws):
         print("Ban Pick Websocket Connected to: " + self.ip + "\n")

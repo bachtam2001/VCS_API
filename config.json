@@ -1,5 +1,5 @@
 {
-	"OBS_IP" : "10.6.29.206",
+	"OBS_IP" : "192.168.10.5",
 	"Ingame_Replay_Port" : "3000",
 	"Ingame_Event_Port" : "34243",
 	"Ingame_OCR_Port" : "3003",
