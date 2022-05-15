@@ -56,9 +56,7 @@ class VCSIngame:
 
     def start(self):
         while True:
-            self.file = open(self.logfile, "ab+")
             asyncio.run(self.process())
-            self.file.close()
 
     async def process(self):
         try:
@@ -66,7 +64,6 @@ class VCSIngame:
             print("Live Event API Connected\n")
             while not self.reader.at_eof():
                 data = await self.reader.readline()
-                self.file.write(data)
                 self.parseData(data)
             try:
                 self.writer.close()

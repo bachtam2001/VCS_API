@@ -1,10 +1,11 @@
 from flask.templating import render_template
 import websocket
 import requests
+import threading
 import json
-import threading, time
 import logging
 import asyncio
+from time import gmtime, strftime
 from flask import Flask, request
 from BanPick import VCSBanPick
 from InGame import VCSIngame
@@ -55,11 +56,17 @@ def getPlayer():
 
 @app.route('/State')
 def getState():
-    if (BanPick.Timer<10):
-        Timer = "0" + str(BanPick.Timer)
+    if (BanPick.TimerFormat == "ss"):
+        Timer = BanPick.Timer
+        if (BanPick.Timer<10):
+            Timer = "0" + str(Timer)
+    elif (BanPick.TimerFormat == "mm:ss"):
+        Timer = strftime("%M:%S", gmtime(int(BanPick.Timer)))
+    elif (BanPick.TimerFormat == "hh:mm:ss"):
+        Timer = strftime("%H:%M:%S", gmtime(int(BanPick.Timer)))
     else:
-        Timer = str(BanPick.Timer)
-    return json.dumps([{"State":BanPick.StateArrow,"Timer": Timer}])
+        Timer = BanPick.Timer
+    return json.dumps([{"StateArrow":BanPick.StateArrow,"Timer": Timer,"State": BanPick.State}])
     
 @app.route('/Admin', methods = ['POST', 'GET'])
 def editIngame():
@@ -106,6 +113,8 @@ def editIngame():
                 Ingame.RedDragon["dragonsoul"] = Ingame.dragonpath + request.form["DragonRedSoul"] + "_Soul.png"
             else:
                 Ingame.RedDragon["dragonsoul"] = Ingame.dragonpath + request.form["DragonRedSoul"] + ".png"
+        if ("timer" in request.form):
+            BanPick.TimerFormat = request.form["timer"]
     return render_template('admin.html', Ingame=Ingame)
 
 @app.route('/Ingame')
@@ -135,4 +144,4 @@ def getTime():
     return json.dumps(data)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0',port='3005', threaded=True)
+    app.run(host='0.0.0.0',port='3005', threaded=True,debug=False)

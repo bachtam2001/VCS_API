@@ -1,44 +1,43 @@
 import websocket
 import requests
 import json
-import threading, time
-from datetime import datetime
+import threading
 class VCSBanPick:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         with open("config.json") as config_file:
             self._config = json.load(config_file)
         #f = open("demofile2.txt", "a")
-        self.load_config()
-        self.file = open("log/banpick/" + datetime.now().strftime("%d-%m-%Y %H-%M-%S")+".log","a+")
         # websocket.enableTrace(True)
+        self.load_config()
         self.BanNum = 0
         self.PickNum = 0
         self.Timer = 0
+        self.State = ""
         self.Ban = []
         self.Pick = []        
         self.StateArrow = str(self.PathArrow + "Neutral.png")  
         self.TeamName = ["",""]
         self.TeamPlayer = []
         self.ClearData()
-        self.connect()
-        
+        bpt = threading.Thread(target=self.connect)
+        bpt.start()
 
     def connect(self):
-        ws = websocket.WebSocketApp("ws://" + self.ip +":" + self.port ,
-                on_open = self.on_open,
-                on_message = self.on_message,
-                on_error = self.on_error,
-                on_close = self.on_close)
-        wst = threading.Thread(target=ws.run_forever)
-        wst.start() 
-
+        while True:
+            ws = websocket.WebSocketApp("ws://" + self.ip +":" + self.port ,
+                    on_open = self.on_open,
+                    on_message = self.on_message,
+                    on_error = self.on_error,
+                    on_close = self.on_close)
+            ws.run_forever()
     def load_config(self):
         self.ip = self._config["OBS_IP"]
         self.port = self._config["Banpick_Port"]
         vmip = self._config["Vmix_IP"]
         vmport = self._config["Vmix_Port"]
         self.Url = "http://" + vmip + ":" + vmport + "/api/?Function="
+        self.TimerFormat = self._config["Timer_Format"]
         self.PathBan = self._config["Ban_Animation"]
         self.PathLine = self._config["Ban_Line"]
         self.PathArrow = self._config["State_Arrow"]
@@ -78,6 +77,7 @@ class VCSBanPick:
         self.TeamName = ["",""]
         self.TeamPlayer = []
         self.Timer = 0
+        self.State = ""
         self.StateArrow = str(self.PathArrow + "Neutral.png")
         for i in range(10):
             Ban = {
@@ -111,6 +111,7 @@ class VCSBanPick:
     def parseState(self,data):
         if (data["champSelectActive"] != True): return
         self.Timer = data["timer"]
+        self.State = data["state"]
         self.ParseArrow(data)
         self.ParseBan(data)
         self.ParsePick(data)
@@ -162,7 +163,7 @@ class VCSBanPick:
                 else:
                     self.Pick[i]["Overlay"] = str(self.PathPick + "None.png")
                 if (data["blueTeam"]["picks"][i]["champion"]["idName"] != ""):
-                    self.Pick[i]["ChampionC"] = str(self.PathC + data["blueTeam"]["picks"][i]["champion"]["idName"] + "_centered_splash.jpg")
+                    self.Pick[i]["ChampionC"] = str(self.PathC + data["blueTeam"]["picks"][i]["champion"]["idName"] + "_0.jpg")
                     self.Pick[i]["ChampionL"] = str(self.PathL + data["blueTeam"]["picks"][i]["champion"]["idName"] + "_0.jpg")
                     self.Pick[i]["ChampionS"] = str(self.PathS + data["blueTeam"]["picks"][i]["champion"]["idName"] + "_0.jpg")
                 else:
@@ -183,7 +184,7 @@ class VCSBanPick:
                 else:
                     self.Pick[i]["Overlay"] = str(self.PathPick + "None.png")
                 if (data["redTeam"]["picks"][i%5]["champion"]["idName"] != ""):
-                    self.Pick[i]["ChampionC"] = str(self.PathC + data["redTeam"]["picks"][i%5]["champion"]["idName"] + "_centered_splash.jpg")
+                    self.Pick[i]["ChampionC"] = str(self.PathC + data["redTeam"]["picks"][i%5]["champion"]["idName"] + "_0.jpg")
                     self.Pick[i]["ChampionL"] = str(self.PathL + data["redTeam"]["picks"][i%5]["champion"]["idName"] + "_0.jpg")
                     self.Pick[i]["ChampionS"] = str(self.PathS + data["redTeam"]["picks"][i%5]["champion"]["idName"] + "_0.jpg")
                 else:
@@ -256,7 +257,6 @@ class VCSBanPick:
 
     def on_error(self, ws, error):
         #print("Ban Pick Websocket Connection error.")
-        self.connect()
         return
 
     def on_close(self, ws):
