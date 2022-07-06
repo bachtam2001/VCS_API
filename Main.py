@@ -8,13 +8,10 @@ import asyncio
 from time import gmtime, strftime
 from flask import Flask, request
 from BanPick import VCSBanPick
-from InGame import VCSIngame
-from IGTimer import VCSTimer     
-
+from Ingame import VCSIngame
 app = Flask("__name__")
 BanPick = VCSBanPick()
 Ingame = VCSIngame()
-Timer = VCSTimer()
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
@@ -34,11 +31,11 @@ def index():
 
 @app.route('/Ban')
 def getBan():
-    return json.dumps(BanPick.Ban);
+    return json.dumps(BanPick.Ban)
 
 @app.route('/Pick')
 def getPick():
-    return json.dumps(BanPick.Pick);
+    return json.dumps(BanPick.Pick)
 
 @app.route('/Team')
 def getTeam():
@@ -67,7 +64,36 @@ def getState():
     else:
         Timer = BanPick.Timer
     return json.dumps([{"StateArrow":BanPick.StateArrow,"Timer": Timer,"State": BanPick.State}])
-    
+
+
+@app.route('/Ingame')
+def getIngame():
+    Ingame.BlueBar["Gold"] = Ingame.convertLoLGold(Ingame.gold["blue"])
+    Ingame.RedBar["Gold"] = Ingame.convertLoLGold(Ingame.gold["red"])
+    data = []
+    data.append(Ingame.BlueBar)
+    data.append(Ingame.RedBar)
+    return json.dumps(data)
+
+@app.route('/Dragon')
+def getDragon():
+    data = []
+    data.append(Ingame.BlueDragon)
+    data.append(Ingame.RedDragon)
+    return json.dumps(data)
+
+@app.route('/Timer')
+def getTime():
+    data = [{
+        "Time": Ingame.convertLoLTime(Ingame.timer),
+        "Dragon": Ingame.convertObjectTime(Ingame.dragontimer),
+        "Herald" : Ingame.convertObjectTime(Ingame.heraldtimer),
+        "Baron" : Ingame.convertObjectTime(Ingame.barontimer),
+        "HeraldIcon" : Ingame.rehaldicon,
+        "HeraldBG" : Ingame.rehaldbackground,
+    }]
+    return json.dumps(data)
+
 @app.route('/Admin', methods = ['POST', 'GET'])
 def editIngame():
     if request.method == 'POST':
@@ -116,32 +142,6 @@ def editIngame():
         if ("timer" in request.form):
             BanPick.TimerFormat = request.form["timer"]
     return render_template('admin.html', Ingame=Ingame)
-
-@app.route('/Ingame')
-def getIngame():
-    Ingame.BlueBar["Gold"] = Timer.gold["blue"]
-    Ingame.RedBar["Gold"] = Timer.gold["red"]
-    data = []
-    data.append(Ingame.BlueBar)
-    data.append(Ingame.RedBar)
-    return json.dumps(data)
-
-@app.route('/Dragon')
-def getDragon():
-    data = []
-    data.append(Ingame.BlueDragon)
-    data.append(Ingame.RedDragon)
-    return json.dumps(data)
-
-@app.route('/Timer')
-def getTime():
-    data = [{
-        "Time": Timer.live,
-        "Dragon": Timer.dragon["timer"],
-        "Dragon_Type" : Timer.dragon["type"],
-        "Baron" : Timer.baron["timer"]
-    }]
-    return json.dumps(data)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0',port='3005', threaded=True,debug=False)
