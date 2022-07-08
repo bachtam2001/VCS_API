@@ -33,10 +33,15 @@ class VCSIngame:
         self.json = ""
         self.timer = 0
         self.barontimer = 1200
+        self.barontimeremain = 0
+        self.baronpowerplay = 0
+        self.eldertimeremain = 0
         self.heraldtimer = 480
         self.dragontimer = 300
         self.rehaldicon = self.timericonpath+"Herald.png"
         self.rehaldbackground = self.timericonpath+"BG.png",
+        self.vmixfunc("SetImage","DragonTimer","DragonIcon.Source",self.timericonpath+"None.png")
+        self.elderate = False
         self.gold = {"blue": 2500,"red": 2500}
         self.BlueBar = {
             "Kill": 0,
@@ -192,12 +197,14 @@ class VCSIngame:
             elif (self.event["sourceTeam"] == "Chaos"):
                 self.BlueBar["Turret"] += 1
         elif (self.event["eventname"] == "OnKillDragon_Spectator"): # Dragon Event
-            if (self.NumDragonBlue==4 or self.NumDragonRed==4):
+            if ((self.NumDragonBlue==4 and self.event["sourceTeam"] == "Order") or (self.NumDragonRed==4 and self.event["sourceTeam"] == "Chaos")):
                 self.dragontimer = self.timer + 360
-                self.vmixfunc("SetImage","DragonTimer","DragonIcon.Source",self.timericonpath+"Elder.png")
-            elif ((self.NumDragonBlue + self.NumDragonRed)>4):
+                if (not self.elderate):
+                    self.vmixfunc("SetImage","DragonTimer","DragonIcon.Source",self.timericonpath+"Elder.png")
+                else:
+                    self.elderate = True
+            elif ((self.NumDragonBlue + self.NumDragonRed)>=4):
                 self.dragontimer = self.timer + 300
-                self.vmixfunc("SetImage","DragonTimer","DragonIcon.Source",self.timericonpath+self.event["other"][11:]+".png")
             else: 
                 self.dragontimer = self.timer + 300
                 self.vmixfunc("SetImage","DragonTimer","DragonIcon.Source",self.timericonpath+"None.png")
@@ -205,6 +212,7 @@ class VCSIngame:
             if (self.event["sourceTeam"] == "Order"):
                 self.BlueBar["Dragon"] += 1
                 if (self.event["other"] == "SRU_Dragon_Elder"): # Elder Blue Event
+                    self.eldertimeremain = self.timer + 150
                     self.vmixfunc("OverlayInput4In","Elder Team 1")
                     return
                 self.BlueDragon["dragon"+str(self.NumDragonBlue)] = self.topiconpath + self.event["other"][11:]+".png"
@@ -221,6 +229,7 @@ class VCSIngame:
                     self.RedDragon["dragonsoul"] = self.topiconpath + self.event["other"][11:] + ".png"
                 self.NumDragonRed += 1
         elif (self.event["eventname"] == "OnKillWorm_Spectator"): #Baron Event
+            self.barontimeremain = self.timer + 180
             if (self.event["sourceTeam"] == "Order"):
                    self.BlueBar["Baron"] += 1
                    self.vmixfunc("OverlayInput3In","Baron Team 1")
