@@ -10,11 +10,13 @@ from flask import Flask, request
 from BanPick import VCSBanPick
 from Ingame import VCSIngame
 app = Flask("__name__")
+
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.WARNING)
+
 BanPick = VCSBanPick()
 Ingame = VCSIngame()
 
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
 
 @app.route('/')
 def index():
@@ -40,14 +42,14 @@ def getPick():
 @app.route('/Team')
 def getTeam():
     Team = []
-    for data in BanPick.TeamName:
+    for data in BanPick.Team:
         Team.append({"Team":data})
     return json.dumps(Team)
 
 @app.route('/Player')
 def getPlayer():
     Player = []
-    for data in BanPick.TeamPlayer:
+    for data in BanPick.Player:
         Player.append({"Player":data})
     return json.dumps(Player)
 
@@ -63,7 +65,7 @@ def getState():
         Timer = strftime("%H:%M:%S", gmtime(int(BanPick.Timer)))
     else:
         Timer = BanPick.Timer
-    return json.dumps([{"StateArrow":BanPick.StateArrow,"Timer": Timer,"State": BanPick.State}])
+    return json.dumps([{"Timer": Timer,"State": BanPick.State}])
 
 
 @app.route('/Ingame')
@@ -91,6 +93,19 @@ def getTime():
         "Baron" : Ingame.convertObjectTime(Ingame.barontimer),
         "HeraldIcon" : Ingame.rehaldicon,
         "HeraldBG" : Ingame.rehaldbackground,
+    }]
+    return json.dumps(data)
+
+@app.route('/Object')
+def getObject():
+    data = [{
+        "ElderTime": Ingame.convertObjectTime(Ingame.eldertimeremain),
+        "ElderTeamName" : Ingame.elderteamname,
+        "ElderBG" : Ingame.elderbackground,
+        "BaronTime": Ingame.convertObjectTime(Ingame.barontimeremain),
+        "BaronTeamName" : Ingame.baronteamname,
+        "BaronBG" : Ingame.baronbackground,
+        "BaronPowerPlay" : '{0:+}'.format(Ingame.baronpowerplay),
     }]
     return json.dumps(data)
 
@@ -144,4 +159,4 @@ def editIngame():
     return render_template('admin.html', Ingame=Ingame)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0',port='3005', threaded=True,debug=False)
+    app.run(host='0.0.0.0',port='3006', threaded=True,debug=False)
