@@ -1,18 +1,19 @@
-import asyncio
-import logging
 import json
 import threading
-import requests
-from datetime import datetime
 import time
+import requests
+
 
 class VCSIngame:
-    def __init__(self):
+    def __init__(self, database, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         with open("config.json") as config_file:
             self._config = json.load(config_file)
         self.load_config()
+        self.db = database
         self.setData()  
-        eventThread = threading.Thread(target=self.start)
+        self.OBS1_API = False
+        eventThread = threading.Thread(target=self.getEvent)
         timeThread = threading.Thread(target=self.getTimeLive)
         goldThread = threading.Thread(target=self.getGold)
         eventThread.start()        
@@ -20,77 +21,45 @@ class VCSIngame:
         goldThread.start()
 
     def load_config(self):
-        self.ip = self._config["OBS_IP"]        
-        self.port = self._config["Ingame_Event_Port"]
+        obs1_ip = self._config["OBS1_IP"] 
+        obs3_ip = self._config["OBS3_IP"]        
+        self.OBS1_API = self._config["OBS1_API"]        
+        port = self._config["Ingame_Port"]
+        self.obs1_url = "http://"+obs1_ip+":"+port+"/"
+        self.obs3_url = "http://"+obs3_ip+":"+port+"/"
         self.VmixAPI = "http://" + self._config["Vmix_IP"] + ":" + self._config["Vmix_Port"] + "/api/?Function="
-        self.obsreplayurl = "http://"+self.ip+":" + self._config["Ingame_Replay_Port"]
-        self.obsocrurl = "http://"+self.ip+":" + self._config["Ingame_OCR_Port"]
         self.topiconpath = self._config["Icon_Path"]
         self.timericonpath = self._config["Timer_Path"]
 
     def setData(self):
-        self.event = None
-        self.json = ""
+        self.events = []
         self.timer = 0
         # -- Timer --
         self.barontimer = 1200
         self.heraldtimer = 480
         self.dragontimer = 300
-        self.rehaldicon = self.timericonpath+"Herald.png"
-        self.rehaldbackground = self.timericonpath+"BG.png",
+        self.dragontype = self.timericonpath+"None.png"
+        self.heraldicon = self.timericonpath+"Herald.png"
+        self.heraldbackground = self.timericonpath+"BG.png"
         # -- Baron Eaten --
         self.barontimeremain = 0
         self.baronteamtaken = ""
-        self.baronteamname = ""
         self.goldonbaron = 0
         self.baronpowerplay = 0
-        self.baronbackground = self.timericonpath+"None.png",
+        self.baronbackground = self.timericonpath+"None.png"
         # -- Dragon Eaten --
         self.eldertimeremain = 0
-        self.elderteamname = ""
-        self.elderbackground = self.timericonpath+"None.png",
-
-        self.vmixfunc("SetImage","DragonTimer","DragonIcon.Source",self.timericonpath+"None.png")
-        self.elderate = False
+        self.elderteamtaken = ""
+        self.elderbackground = self.timericonpath+"None.png"
         self.gold = {"blue": 2500,"red": 2500}
-        self.BlueBar = {
-            "Kill": 0,
-            "Gold": "2.5k",
-            "Turret": 0,
-            "Baron": 0,
-            "Dragon": 0,
-            "HeraldIcon": self.topiconpath+"herald.png",
-        }
 
-        self.RedBar = {
-            "Kill": 0,
-            "Gold": "2.5k",
-            "Turret": 0,
-            "Baron": 0,
-            "Dragon": 0,
-            "HeraldIcon": self.topiconpath+"herald.png"
-        }      
 
         self.NumDragonBlue = 1
         self.NumDragonRed = 1
-        self.BlueDragon = {
-            "dragon1": self.topiconpath + "None.png",
-            "dragon2": self.topiconpath + "None.png",
-            "dragon3": self.topiconpath + "None.png",
-            "dragon4": self.topiconpath + "None.png",
-            "dragonsoul": self.topiconpath + "None.png",
-        }
-        self.RedDragon = {
-            "dragon1": self.topiconpath + "None.png",
-            "dragon2": self.topiconpath + "None.png",
-            "dragon3": self.topiconpath + "None.png",
-            "dragon4": self.topiconpath + "None.png",
-            "dragonsoul": self.topiconpath + "None.png",
-        }
 
     def convertLoLTime(self,sec):
         timer = ""
-        m, s = divmod(sec, 60)
+        m, s = divmod(int(sec), 60)
         m = int(m)
         s = int(s)
         if (m<10):
@@ -115,171 +84,239 @@ class VCSIngame:
             return self.convertLoLTime(sec-self.timer)
 
     def convertLoLGold(self,gold):
-        return str(gold/1000)+"k"
+        return str((int(gold/100)*100)/1000)+"k"
 
     def getTimeLive(self):
         while True:
             try:
-                rp = requests.get(self.obsreplayurl+"/replay/playback", verify=False, timeout=1)
+                rp1 = requests.get(self.obs1_url+"/Timer", verify=False, timeout=1)
             except:
-                continue
-            if (rp.status_code!=200):
-                continue
-            data = rp.json()
-            self.timer = int(data["time"])
+                rp1 = None
+            try:
+                rp3 = requests.get(self.obs3_url+"/Timer", verify=False, timeout=1)
+            except:
+                rp3 = None
+            if (rp1==None and rp3==None): continue
+            if (not self.OBS1_API and rp3 == None):continue
+            if (self.OBS1_API and rp1 == None):continue
+            if (not self.OBS1_API):
+                timer_obs3 = rp3.json()
+                self.timer = timer_obs3["Time"]
+                self.barontimer = timer_obs3["Baron"]
+                self.heraldtimer = timer_obs3["Herald"]
+                self.dragontimer = timer_obs3["Dragon"]
+                self.dragontype = self.timericonpath+timer_obs3["DragonType"]+".png"
+            else:
+                timer_obs1 = rp1.json()
+                self.timer = timer_obs1["Time"]
+                self.barontimer = timer_obs1["Baron"]
+                self.heraldtimer = timer_obs1["Herald"]
+                self.dragontimer = timer_obs1["Dragon"]
             self.parseTimeEvent()
             time.sleep(0.1)
             
     def parseTimeEvent(self):
-        if (self.barontimeremain > 0):
-            if (self.baronteamtaken == "Blue"):
-                self.baronpowerplay = (self.gold["blue"]-self.gold["red"]) - self.goldonbaron
-            elif (self.baronteamtaken == "Red"):
-                self.baronpowerplay = (self.gold["red"]-self.gold["blue"]) - self.goldonbaron
-        elif (self.barontimeremain <= self.timer):
+        if (self.barontimeremain != 0 and self.barontimeremain <= self.timer):
+            self.barontimeremain = 0
             self.baronpowerplay = 0
             self.goldonbaron = 0
             self.baronteamtaken = ""
-            self.baronteamname = ""
-            self.baronbackground = self.timericonpath+"None.png",
-
-        if (self.timer == 1200):
-            self.heraldtimer = 0
-            self.rehaldicon = self.timericonpath+"None.png"
-            self.rehaldbackground = self.timericonpath+"None.png"
-            self.BlueBar["HeraldIcon"] = self.topiconpath + "Baron.png"
-            self.RedBar["HeraldIcon"] = self.topiconpath + "Baron.png"
-            self.BlueBar["Baron"] = 0
-            self.RedBar["Baron"] = 0
+            self.baronbackground = self.timericonpath+"None.png"
             
+        if (self.eldertimeremain != 0 and self.eldertimeremain <= self.timer):
+            self.eldertimeremain = 0
+            self.elderteamtaken = ""
+            self.elderbackground = self.timericonpath+"None.png"
+
+        if (self.timer >= 1200):
+            self.HeraldIcon = self.topiconpath + "Baron.png"
+        else:
+            self.HeraldIcon = self.topiconpath + "Herald.png"
+
+        if (self.heraldtimer == 0):
+            self.heraldicon = self.timericonpath+"None.png"
+            self.heraldbackground = self.timericonpath+"None.png"
+        else:
+            self.heraldicon = self.timericonpath+"Herald.png"
+            self.heraldbackground = self.timericonpath+"BG.png"
+
     def getGold(self):
         while True:
             try:
-                rp = requests.get(self.obsocrurl+"/api/teams", verify=False, timeout=1)
+                rp1 = requests.get(self.obs1_url+"/Gold", verify=False, timeout=1)
             except:
-                continue
-            if (rp.status_code!=200):
-                continue
-            data = rp.json()
-            if (data[0]["Gold"]-self.gold["blue"]<=3000 and data[0]["Gold"]-self.gold["blue"]>=0):
-                    self.gold["blue"] = data[0]["Gold"]
-            if (data[1]["Gold"]-self.gold["red"]<=3000 and data[1]["Gold"]-self.gold["red"]>=0):
-                    self.gold["red"] = data[1]["Gold"]
+                rp1 = None
+            try:
+                rp3 = requests.get(self.obs3_url+"/Gold", verify=False, timeout=1)
+            except:
+                rp3 = None
+            if (rp1==None and rp3==None): continue
+            if (not self.OBS1_API and rp3 == None):continue
+            if (self.OBS1_API and rp1 == None):continue
+            if (not self.OBS1_API):
+                data = rp3.json()
+                self.gold["blue"] = data["blue"]
+                self.gold["red"] = data["red"]
+            else:
+                data = rp1.json()
+                self.gold["blue"] = data["blue"]
+                self.gold["red"] = data["red"]
+                
+            if (self.barontimeremain > 0):
+                self.parseBaronPowerPlay()
             time.sleep(0.1)
 
-    def start(self):
+    def parseBaronPowerPlay(self):
+        if (self.baronteamtaken == "Blue"):
+            self.baronpowerplay = (self.gold["blue"]-self.gold["red"]) - self.goldonbaron
+        elif (self.baronteamtaken == "Red"):
+            self.baronpowerplay = (self.gold["red"]-self.gold["blue"]) - self.goldonbaron
+
+    def getEvent(self):
         while True:
-            asyncio.run(self.process())
-            time.sleep(1)
-
-    async def process(self):
-        try:
-            self.reader, self.writer = await asyncio.open_connection(self.ip, self.port)
-            print("Live Event API Connected\n")
-            while not self.reader.at_eof():
-                data = await self.reader.readline()
-                self.parseData(data)
             try:
-                self.writer.close()
-                print("Live Event API Disconnected\n")
-            except Exception as msg:
-                #print("Live Event API Connect Error\n")
-                print(msg)
-                return
-        except Exception as msg:
-            #print(msg)
-            return
-
-            
-    def parseData(self, data):
-        if (data==b'}\n'):
-            self.json += data.decode("utf-8")
-            self.parseJSON()
-            self.json = ""
-        else:
-            self.json += data.decode("utf-8")
-
-    def parseJSON(self):
-        try:
-            self.event = json.loads(self.json)
-        except Exception as msg:
-            self.event = None
-            #print(msg)
-            return
-        if (self.event["eventname"] == "OnGameStart"):
-            self.setData()
-        elif (self.event["eventname"] == "OnChampionKill"):
-            if (self.event["sourceTeam"] == "Order"):
-                self.BlueBar["Kill"] += 1
-            elif (self.event["sourceTeam"] == "Chaos"):
-                self.RedBar["Kill"] += 1
-        elif (self.event["eventname"] == "OnTurretDie"):
-            if (self.event["sourceTeam"] == "Order"):
-                self.RedBar["Turret"] += 1
-            elif (self.event["sourceTeam"] == "Chaos"):
-                self.BlueBar["Turret"] += 1
-        elif (self.event["eventname"] == "OnKillDragon_Spectator"): # Dragon Event
-            if ((self.NumDragonBlue==4 and self.event["sourceTeam"] == "Order") or (self.NumDragonRed==4 and self.event["sourceTeam"] == "Chaos")):
-                self.dragontimer = self.timer + 360
-                if (not self.elderate):
-                    self.vmixfunc("SetImage","DragonTimer","DragonIcon.Source",self.timericonpath+"Elder.png")
-                else:
-                    self.elderate = True
-            elif ((self.NumDragonBlue + self.NumDragonRed)>=4):
-                self.dragontimer = self.timer + 300
-            else: 
-                self.dragontimer = self.timer + 300
-                self.vmixfunc("SetImage","DragonTimer","DragonIcon.Source",self.timericonpath+"None.png")
-
-            if (self.event["sourceTeam"] == "Order"):
-                self.BlueBar["Dragon"] += 1
-                if (self.event["other"] == "SRU_Dragon_Elder"): # Elder Blue Event
-                    self.eldertimeremain = self.timer + 150
-                    # self.vmixfunc("OverlayInput4In","Elder Team 1")
-                    return
-                self.BlueDragon["dragon"+str(self.NumDragonBlue)] = self.topiconpath + self.event["other"][11:]+".png"
-                if (self.NumDragonBlue==4):
-                    self.BlueDragon["dragonsoul"] = self.topiconpath + self.event["other"][11:] + ".png"
-                self.NumDragonBlue += 1
-            elif (self.event["sourceTeam"] == "Chaos"):
-                self.RedBar["Dragon"] += 1
-                if (self.event["other"] == "SRU_Dragon_Elder"): # Elder Red Event
-                    # self.vmixfunc("OverlayInput4In","Elder Team 2")
-                    return
-                self.RedDragon["dragon"+str(self.NumDragonRed)] = self.topiconpath + self.event["other"][11:] + ".png"
-                if (self.NumDragonRed==4):
-                    self.RedDragon["dragonsoul"] = self.topiconpath + self.event["other"][11:] + ".png"
-                self.NumDragonRed += 1
-        elif (self.event["eventname"] == "OnKillWorm_Spectator"): #Baron Event
-            self.barontimeremain = self.timer + 180
-            self.baronteamname = self.event["source"].split(" ")[0]
-            if (self.event["sourceTeam"] == "Order"):
-                   self.BlueBar["Baron"] += 1
-                   self.baronteamtaken = "Blue"
-                   self.baronbackground = self.timericonpath+"Baron_BG_Blue.png"
-                   self.goldonbaron = self.gold["blue"] - self.gold["red"]
-                   # self.vmixfunc("OverlayInput3In","Baron Team 1")
-            elif (self.event["sourceTeam"] == "Chaos"):
-                   self.RedBar["Baron"] += 1
-                   self.baronteamtaken = "Red"
-                   self.baronbackground = self.timericonpath+"Baron_BG_Red.png"
-                   self.goldonbaron = self.gold["red"] - self.gold["blue"]
-                   # self.vmixfunc("OverlayInput3In","Baron Team 2")
-            self.barontimer = self.timer + 360
-            
-        elif (self.event["eventname"] == "OnNeutralMinionKill" and self.event["other"] == "SRU_RiftHerald17.1.1"):
-            if (self.event["sourceTeam"] == "Order"):
-                self.BlueBar["Baron"] += 1
-            elif (self.event["sourceTeam"] == "Chaos"):
-                self.RedBar["Baron"] += 1
-                
-            if (self.timer <= 825):
-                self.heraldtimer = self.timer + 360
+                rp1 = requests.get(self.obs1_url+"/Event", verify=False, timeout=1)
+            except:
+                rp1 = None
+            try:
+                rp3 = requests.get(self.obs3_url+"/Event", verify=False, timeout=1)
+            except:
+                rp3 = None
+            if (rp1==None and rp3==None): continue
+            if (not self.OBS1_API and rp3 == None):continue
+            if (self.OBS1_API and rp1 == None):continue
+            if (not self.OBS1_API):
+                events = rp3.json()
+                self.events = events
             else:
-                self.heraldtimer = 0
-                self.rehaldicon = self.timericonpath+"None.png"
-                self.rehaldbackground = self.timericonpath+"None.png"
+                events = rp1.json()
+                self.events = events   
+            time.sleep(0.1)
 
+    def getScoreBar(self):
+        BlueBar = {
+            "Kill": 0,
+            "Gold": "2.5k",
+            "Turret": 0,
+            "Baron": 0,
+            "Dragon": 0,
+            "HeraldIcon": self.topiconpath+ ("herald.png" if self.timer<1200 else "baron.png")
+        }
+        RedBar = {
+            "Kill": 0,
+            "Gold": "2.5k",
+            "Turret": 0,
+            "Baron": 0,
+            "Dragon": 0,
+            "HeraldIcon": self.topiconpath + ("herald.png" if self.timer<1200 else "baron.png")
+        }
+        TurretBlue = []
+        TurretRed = []
+        for event in self.events:
+            if (event["eventname"] == "OnChampionKill"):
+                if (event["sourceTeam"] == "Order"):
+                    BlueBar["Kill"] += 1
+                elif (event["sourceTeam"] == "Chaos"):
+                    RedBar["Kill"] += 1
+            elif (event["eventname"] == "OnTurretDie"):
+                if (event["source"]=="Obelisk"):continue
+                if (event["sourceTeam"] == "Order"):
+                    if (event["source"] not in TurretRed):
+                        TurretRed.append(event["source"])
+                    RedBar["Turret"] = len(TurretRed)
+                elif (event["sourceTeam"] == "Chaos"):
+                    if (event["source"] not in TurretBlue):
+                        TurretBlue.append(event["source"])
+                    BlueBar["Turret"] = len(TurretBlue)
+            elif (event["eventname"] == "OnKillDragon_Spectator"): # Dragon Event
+                if (event["sourceTeam"] == "Order"):
+                    if (event["other"] == "SRU_Dragon_Elder"): # Elder Blue Event
+                        continue
+                    BlueBar["Dragon"] += 1
+                elif (event["sourceTeam"] == "Chaos"):
+                    if (event["other"] == "SRU_Dragon_Elder"): # Elder Red Event
+                        continue
+                    RedBar["Dragon"] += 1
+            elif (event["eventname"] == "OnKillWorm_Spectator"): #Baron Event
+                if (event["sourceTeam"] == "Order"):
+                    BlueBar["Baron"] += 1
+                elif (event["sourceTeam"] == "Chaos"):
+                    RedBar["Baron"] += 1
+            elif (event["eventname"] == "OnNeutralMinionKill" and event["other"] == "SRU_RiftHerald17.1.1"):
+                if (self.timer < 1200):
+                    if (event["sourceTeam"] == "Order"):
+                        BlueBar["Baron"] += 1
+                    elif (event["sourceTeam"] == "Chaos"):
+                        RedBar["Baron"] += 1
+        
+        return BlueBar,RedBar
+
+    def getDragon(self):
+        DragonBlue = []
+        DragonRed = []
+        for event in self.events:
+            if (event["eventname"] == "OnKillDragon_Spectator"): # Dragon Event
+                if (event["sourceTeam"] == "Order"):
+                    if (event["other"] == "SRU_Dragon_Elder"): # Elder Blue Event
+                        continue
+                    DragonBlue.append(self.timericonpath + event["other"][11:] + ".png")
+                elif (event["sourceTeam"] == "Chaos"):
+                    if (event["other"] == "SRU_Dragon_Elder"): # Elder Red Event
+                        continue
+                    DragonRed.append(self.timericonpath + event["other"][11:] + ".png")
+                    
+        if (len(DragonBlue) == 4):
+            DragonBlue.append(DragonBlue[3])
+        elif (len(DragonRed) == 4):
+            DragonRed.append(DragonRed[3])
+
+        for i in range(5):
+            if (i >= len(DragonBlue)):
+                DragonBlue.append(self.timericonpath + "None.png")
+            if (i >= len(DragonRed)):
+                DragonRed.append(self.timericonpath + "None.png")
+        return DragonBlue,DragonRed
+    
+    def getObject(self):
+        Baron = []
+        Elder = []
+        for event in self.events:
+            if (event["eventname"] == "OnKillWorm_Spectator"):
+                Baron.append(event)
+            elif (event["eventname"] == "OnKillDragon_Spectator" and event["other"] == "SRU_Dragon_Elder"):
+                Elder.append(event)
+                
+        if (len(Baron) == 0):
+            self.barontimeremain = 0
+            self.baronpowerplay = 0
+            self.goldonbaron = 0
+            self.baronteamtaken = ""
+            self.baronbackground = self.timericonpath+"None.png"
+        elif (Baron[-1]["eventTime"]+180>self.timer):
+            self.barontimeremain = Baron[-1]["eventTime"] + 180
+            self.goldonbaron = Baron[-1]["gold@team"]
+            self.baronteamtaken = ("Blue" if Baron[-1]["sourceTeam"] == "Order" else "Red")
+            self.baronbackground = self.timericonpath+"Baron_BG_" + self.baronteamtaken + ".png"
+        else:
+            self.barontimeremain = 0
+            self.baronpowerplay = 0
+            self.goldonbaron = 0
+            self.baronteamtaken = ""
+            self.baronbackground = self.timericonpath+"None.png"
+        
+        if (len(Elder) == 0):
+            self.eldertimeremain = 0
+            self.elderteamtaken = ""
+            self.elderbackground = self.timericonpath+"None.png"
+        elif (Elder[-1]["eventTime"]+150>self.timer):
+            self.eldertimeremain = Elder[-1]["eventTime"] + 150
+            self.elderteamtaken = ("Blue" if Elder[-1]["sourceTeam"] == "Order" else "Red")
+            self.elderbackground = self.timericonpath+"Dragon_BG_" + self.elderteamtaken + ".png"
+        else:
+            self.eldertimeremain = 0
+            self.elderteamtaken = ""
+            self.elderbackground = self.timericonpath+"None.png"
+        
     def vmixfunc(self, func, input, selectedname = "", value = "", ):
         url = self.VmixAPI + func + "&Input=" + input + "&SelectedName=" + selectedname + "&Value=" + value 
         try:

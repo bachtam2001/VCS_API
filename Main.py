@@ -1,21 +1,18 @@
-from flask.templating import render_template
-import websocket
-import requests
-import threading
 import json
 import logging
-import asyncio
 from time import gmtime, strftime
 from flask import Flask, request
 from BanPick import VCSBanPick
 from Ingame import VCSIngame
+from waitress import serve
+from tinydb import TinyDB
 app = Flask("__name__")
-
+db = TinyDB('db.json')
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.WARNING)
 
-BanPick = VCSBanPick()
-Ingame = VCSIngame()
+BanPick = VCSBanPick(db)
+Ingame = VCSIngame(db)
 
 
 @app.route('/')
@@ -48,40 +45,49 @@ def getTeam():
 
 @app.route('/Player')
 def getPlayer():
-    Player = []
-    for data in BanPick.Player:
-        Player.append({"Player":data})
-    return json.dumps(Player)
+    return json.dumps(BanPick.Player)
 
 @app.route('/State')
 def getState():
     if (BanPick.TimerFormat == "ss"):
-        Timer = BanPick.Timer
+        Timer = str(BanPick.Timer)
         if (BanPick.Timer<10):
-            Timer = "0" + str(Timer)
+            Timer = "0" + Timer
     elif (BanPick.TimerFormat == "mm:ss"):
         Timer = strftime("%M:%S", gmtime(int(BanPick.Timer)))
     elif (BanPick.TimerFormat == "hh:mm:ss"):
         Timer = strftime("%H:%M:%S", gmtime(int(BanPick.Timer)))
     else:
-        Timer = BanPick.Timer
+        Timer = str(BanPick.Timer)
     return json.dumps([{"Timer": Timer,"State": BanPick.State}])
 
 
-@app.route('/Ingame')
+@app.route('/Score')
 def getIngame():
-    Ingame.BlueBar["Gold"] = Ingame.convertLoLGold(Ingame.gold["blue"])
-    Ingame.RedBar["Gold"] = Ingame.convertLoLGold(Ingame.gold["red"])
+    BlueBar, RedBar = Ingame.getScoreBar()
+    BlueBar["Gold"] = Ingame.convertLoLGold(Ingame.gold["blue"])
+    RedBar["Gold"] = Ingame.convertLoLGold(Ingame.gold["red"])
     data = []
-    data.append(Ingame.BlueBar)
-    data.append(Ingame.RedBar)
+    data.append(BlueBar)
+    data.append(RedBar)
     return json.dumps(data)
 
+@app.route('/POV')
+def getPOV():
+    data = []
+    Player = BanPick.Player
+    for i in range(5):
+        player = {"Blue": Player[i]["Image"], "Red": Player[i+5]["Image"]}
+        data.append(player)
+    return json.dumps(data)
+    
 @app.route('/Dragon')
 def getDragon():
     data = []
-    data.append(Ingame.BlueDragon)
-    data.append(Ingame.RedDragon)
+    DragonBlue,DragonRed = Ingame.getDragon()
+    for i in range(5):
+        dragon = {"Blue": DragonBlue[i], "Red": DragonRed[i]}
+        data.append(dragon)
     return json.dumps(data)
 
 @app.route('/Timer')
@@ -89,74 +95,44 @@ def getTime():
     data = [{
         "Time": Ingame.convertLoLTime(Ingame.timer),
         "Dragon": Ingame.convertObjectTime(Ingame.dragontimer),
+        "DragonType": Ingame.dragontype,
         "Herald" : Ingame.convertObjectTime(Ingame.heraldtimer),
         "Baron" : Ingame.convertObjectTime(Ingame.barontimer),
-        "HeraldIcon" : Ingame.rehaldicon,
-        "HeraldBG" : Ingame.rehaldbackground,
+        "HeraldIcon" : Ingame.heraldicon,
+        "HeraldBG" : Ingame.heraldbackground,
     }]
     return json.dumps(data)
 
 @app.route('/Object')
 def getObject():
+    Ingame.getObject()
+    if (Ingame.elderteamtaken=="Blue"):
+        Elder_Team_Name = BanPick.Team[0]["Name"]
+    elif (Ingame.elderteamtaken=="Red"):
+        Elder_Team_Name = BanPick.Team[1]["Name"]
+    else:
+        Elder_Team_Name = ""
+    if (Ingame.baronteamtaken=="Blue"):
+        Baron_Team_Name = BanPick.Team[0]["Name"]
+    elif (Ingame.baronteamtaken=="Red"):
+        Baron_Team_Name = BanPick.Team[1]["Name"]
+    else:
+        Baron_Team_Name = ""
+        
+    if Ingame.baronpowerplay != 0:
+        baronpowerplay = '{0:+d}'.format(Ingame.baronpowerplay) 
+    else:
+        baronpowerplay = '0'
     data = [{
         "ElderTime": Ingame.convertObjectTime(Ingame.eldertimeremain),
-        "ElderTeamName" : Ingame.elderteamname,
+        "ElderTeamName" : Elder_Team_Name,
         "ElderBG" : Ingame.elderbackground,
         "BaronTime": Ingame.convertObjectTime(Ingame.barontimeremain),
-        "BaronTeamName" : Ingame.baronteamname,
+        "BaronTeamName" : Baron_Team_Name,
         "BaronBG" : Ingame.baronbackground,
-        "BaronPowerPlay" : '{0:+}'.format(Ingame.baronpowerplay),
+        "BaronPowerPlay" : (baronpowerplay if Ingame.barontimeremain > 0 else '')
     }]
     return json.dumps(data)
 
-@app.route('/Admin', methods = ['POST', 'GET'])
-def editIngame():
-    if request.method == 'POST':
-        if ("BKill" in request.form):
-            Ingame.BlueBar["Kill"] = request.form["BKill"]
-        if ("BTurret" in request.form):
-            Ingame.BlueBar["Turret"] = request.form["BTurret"]
-        if ("RKill" in request.form):
-            Ingame.RedBar["Kill"] = request.form["RKill"]
-        if ("RTurret" in request.form):
-            Ingame.RedBar["Turret"] = request.form["RTurret"]
-        if ("DragonBlue1" in request.form):
-            if (request.form["DragonBlue1"]!="None"):
-                Ingame.NumDragonBlue=1
-            Ingame.BlueDragon["dragon1"] = Ingame.dragonpath + request.form["DragonBlue1"] + ".png"
-            if (request.form["DragonBlue2"]!="None"):
-                Ingame.NumDragonBlue=2
-            Ingame.BlueDragon["dragon2"] = Ingame.dragonpath + request.form["DragonBlue2"] + ".png"        
-            if (request.form["DragonBlue3"]!="None"):
-                Ingame.NumDragonBlue=3
-            Ingame.BlueDragon["dragon3"] = Ingame.dragonpath + request.form["DragonBlue3"] + ".png"        
-            if (request.form["DragonBlue4"]!="None"):
-                Ingame.NumDragonBlue=4
-            Ingame.BlueDragon["dragon4"] = Ingame.dragonpath + request.form["DragonBlue4"] + ".png"
-            if (request.form["DragonBlueSoul"]!="None"):
-                Ingame.BlueDragon["dragonsoul"] = Ingame.dragonpath + request.form["DragonBlueSoul"] + "_Soul.png"
-            else:
-                Ingame.BlueDragon["dragonsoul"] = Ingame.dragonpath + request.form["DragonBlueSoul"] + ".png"
-        if ("DragonRed1" in request.form):
-            if (request.form["DragonRed1"]!="None"):
-                Ingame.NumDragonRed=1
-            Ingame.RedDragon["dragon1"] = Ingame.dragonpath + request.form["DragonRed1"] + ".png"
-            if (request.form["DragonRed2"]!="None"):
-                Ingame.NumDragonRed=2
-            Ingame.RedDragon["dragon2"] = Ingame.dragonpath + request.form["DragonRed2"] + ".png"        
-            if (request.form["DragonRed3"]!="None"):
-                Ingame.NumDragonRed=3
-            Ingame.RedDragon["dragon3"] = Ingame.dragonpath + request.form["DragonRed3"] + ".png"        
-            if (request.form["DragonRed4"]!="None"):
-                Ingame.NumDragonRed=4
-            Ingame.RedDragon["dragon4"] = Ingame.dragonpath + request.form["DragonRed4"] + ".png"
-            if (request.form["DragonRedSoul"]!="None"):
-                Ingame.RedDragon["dragonsoul"] = Ingame.dragonpath + request.form["DragonRedSoul"] + "_Soul.png"
-            else:
-                Ingame.RedDragon["dragonsoul"] = Ingame.dragonpath + request.form["DragonRedSoul"] + ".png"
-        if ("timer" in request.form):
-            BanPick.TimerFormat = request.form["timer"]
-    return render_template('admin.html', Ingame=Ingame)
-
 if __name__ == '__main__':
-    app.run(host='0.0.0.0',port='3006', threaded=True,debug=False)
+    serve(app, host='0.0.0.0', port=3005, threads=8)
