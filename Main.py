@@ -9,7 +9,7 @@ from tinydb import TinyDB
 app = Flask("__name__")
 db = TinyDB('db.json')
 log = logging.getLogger('werkzeug')
-log.setLevel(logging.WARNING)
+log.setLevel(logging.DEBUG)
 
 BanPick = VCSBanPick(db)
 Ingame = VCSIngame(db)
@@ -102,35 +102,40 @@ def getTime():
         "HeraldBG" : Ingame.heraldbackground,
     }]
     return json.dumps(data)
-
+    ''
+@app.route('/Overlay')
+def getOverlay():
+    data = Ingame.getOverlay()
+    return json.dumps([data])
+    
 @app.route('/Object')
 def getObject():
-    Ingame.getObject()
-    if (Ingame.elderteamtaken=="Blue"):
+    BaronData, ElderData = Ingame.getObject()
+    if (ElderData["TeamTaken"]=="Blue"):
         Elder_Team_Name = BanPick.Team[0]["Name"]
-    elif (Ingame.elderteamtaken=="Red"):
+    elif (ElderData["TeamTaken"]=="Red"):
         Elder_Team_Name = BanPick.Team[1]["Name"]
     else:
         Elder_Team_Name = ""
-    if (Ingame.baronteamtaken=="Blue"):
+    if (BaronData["TeamTaken"]=="Blue"):
         Baron_Team_Name = BanPick.Team[0]["Name"]
-    elif (Ingame.baronteamtaken=="Red"):
+    elif (BaronData["TeamTaken"]=="Red"):
         Baron_Team_Name = BanPick.Team[1]["Name"]
     else:
         Baron_Team_Name = ""
         
-    if Ingame.baronpowerplay != 0:
-        baronpowerplay = '{0:+d}'.format(Ingame.baronpowerplay) 
+    if BaronData["PowerPlay"] != 0:
+        baronpowerplay = '{0:+d}'.format(BaronData["PowerPlay"]) 
     else:
         baronpowerplay = '0'
     data = [{
-        "ElderTime": Ingame.convertObjectTime(Ingame.eldertimeremain),
+        "ElderTime": Ingame.convertObjectTime(ElderData["TimerRemain"]),
         "ElderTeamName" : Elder_Team_Name,
-        "ElderBG" : Ingame.elderbackground,
-        "BaronTime": Ingame.convertObjectTime(Ingame.barontimeremain),
+        "ElderBG" : ElderData["Background"],
+        "BaronTime": Ingame.convertObjectTime(BaronData["TimerRemain"]),
         "BaronTeamName" : Baron_Team_Name,
-        "BaronBG" : Ingame.baronbackground,
-        "BaronPowerPlay" : (baronpowerplay if Ingame.barontimeremain > 0 else '')
+        "BaronBG" : BaronData["Background"],
+        "BaronPowerPlay" : (baronpowerplay if BaronData["TimerRemain"] > 0 else '')
     }]
     return json.dumps(data)
 

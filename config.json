@@ -16,5 +16,6 @@
 	"Player_Card_BG" : "C:/2022_VCS_SUMMER/XAML/Player Card/",
 	"Icon_Path" : "C:/2022_VCS_SUMMER/XAML/Ingame/Icon/",
 	"Timer_Path" : "C:/2022_VCS_SUMMER/XAML/Timer/Icon/",
+	"Overlay_Path" : "C:/2022_VCS_SUMMER/XAML/Overlay/",
 	"Timer_Format" : "ss"
 }

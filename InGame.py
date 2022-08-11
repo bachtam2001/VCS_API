@@ -1,7 +1,9 @@
+from ast import Return
 import json
 import threading
 import time
 import requests
+from urllib3 import Retry
 
 
 class VCSIngame:
@@ -30,6 +32,7 @@ class VCSIngame:
         self.VmixAPI = "http://" + self._config["Vmix_IP"] + ":" + self._config["Vmix_Port"] + "/api/?Function="
         self.topiconpath = self._config["Icon_Path"]
         self.timericonpath = self._config["Timer_Path"]
+        self.overlaypath = self._config["Overlay_Path"]
 
     def setData(self):
         self.events = []
@@ -41,16 +44,6 @@ class VCSIngame:
         self.dragontype = self.timericonpath+"None.png"
         self.heraldicon = self.timericonpath+"Herald.png"
         self.heraldbackground = self.timericonpath+"BG.png"
-        # -- Baron Eaten --
-        self.barontimeremain = 0
-        self.baronteamtaken = ""
-        self.goldonbaron = 0
-        self.baronpowerplay = 0
-        self.baronbackground = self.timericonpath+"None.png"
-        # -- Dragon Eaten --
-        self.eldertimeremain = 0
-        self.elderteamtaken = ""
-        self.elderbackground = self.timericonpath+"None.png"
         self.gold = {"blue": 2500,"red": 2500}
 
 
@@ -115,19 +108,7 @@ class VCSIngame:
             self.parseTimeEvent()
             time.sleep(0.1)
             
-    def parseTimeEvent(self):
-        if (self.barontimeremain != 0 and self.barontimeremain <= self.timer):
-            self.barontimeremain = 0
-            self.baronpowerplay = 0
-            self.goldonbaron = 0
-            self.baronteamtaken = ""
-            self.baronbackground = self.timericonpath+"None.png"
-            
-        if (self.eldertimeremain != 0 and self.eldertimeremain <= self.timer):
-            self.eldertimeremain = 0
-            self.elderteamtaken = ""
-            self.elderbackground = self.timericonpath+"None.png"
-
+    def parseTimeEvent(self):            
         if (self.timer >= 1200):
             self.HeraldIcon = self.topiconpath + "Baron.png"
         else:
@@ -161,16 +142,7 @@ class VCSIngame:
                 data = rp1.json()
                 self.gold["blue"] = data["blue"]
                 self.gold["red"] = data["red"]
-                
-            if (self.barontimeremain > 0):
-                self.parseBaronPowerPlay()
             time.sleep(0.1)
-
-    def parseBaronPowerPlay(self):
-        if (self.baronteamtaken == "Blue"):
-            self.baronpowerplay = (self.gold["blue"]-self.gold["red"]) - self.goldonbaron
-        elif (self.baronteamtaken == "Red"):
-            self.baronpowerplay = (self.gold["red"]-self.gold["blue"]) - self.goldonbaron
 
     def getEvent(self):
         while True:
@@ -200,7 +172,9 @@ class VCSIngame:
             "Turret": 0,
             "Baron": 0,
             "Dragon": 0,
-            "HeraldIcon": self.topiconpath+ ("herald.png" if self.timer<1200 else "baron.png")
+            "HeraldIcon": self.topiconpath + "baron.png",
+            "TurretIcon": self.topiconpath + "turret.png",
+            "DragonIcon": self.topiconpath + "dragon.png"
         }
         RedBar = {
             "Kill": 0,
@@ -208,10 +182,15 @@ class VCSIngame:
             "Turret": 0,
             "Baron": 0,
             "Dragon": 0,
-            "HeraldIcon": self.topiconpath + ("herald.png" if self.timer<1200 else "baron.png")
+            "HeraldIcon": self.topiconpath + "baron.png",
+            "TurretIcon": self.topiconpath + "turret.png",
+            "DragonIcon": self.topiconpath + "dragon.png"
         }
         TurretBlue = []
         TurretRed = []
+        Bounty = False
+        BountyBlue = False
+        BountyRed = False
         for event in self.events:
             if (event["eventname"] == "OnChampionKill"):
                 if (event["sourceTeam"] == "Order"):
@@ -248,7 +227,45 @@ class VCSIngame:
                         BlueBar["Baron"] += 1
                     elif (event["sourceTeam"] == "Chaos"):
                         RedBar["Baron"] += 1
-        
+            elif (event["eventname"] == "OnObjectiveBountySoon" and event["eventTime"]+15<self.timer):
+                    Bounty = True
+            elif (event["eventname"] == "OnObjectiveBountyEnded" and event["eventTime"] < self.timer):
+                    Bounty = False
+                    
+        if (Bounty):
+            if (self.gold["blue"]>self.gold["red"]):
+                BountyBlue = True
+            else:
+                BountyRed = True
+                
+        if (self.timer >= 1200):
+            if (BountyBlue):
+                BlueBar["HeraldIcon"] = self.topiconpath + "baron_bounty.png"
+                RedBar["HeraldIcon"] = self.topiconpath + "baron.png"
+            elif (BountyRed):
+                BlueBar["HeraldIcon"] = self.topiconpath + "baron.png"
+                RedBar["HeraldIcon"] = self.topiconpath + "baron_bounty.png"
+            else:
+                BlueBar["HeraldIcon"] = self.topiconpath + "baron.png"
+                RedBar["HeraldIcon"] = self.topiconpath + "baron.png"
+        else:
+            if (BountyBlue):
+                BlueBar["HeraldIcon"] = self.topiconpath + "herald_bounty.png"
+                RedBar["HeraldIcon"] = self.topiconpath + "herald.png"
+            elif (BountyRed):
+                BlueBar["HeraldIcon"] = self.topiconpath + "herald.png"
+                RedBar["HeraldIcon"] = self.topiconpath + "herald_bounty.png"
+            else:
+                BlueBar["HeraldIcon"] = self.topiconpath + "herald.png"
+                RedBar["HeraldIcon"] = self.topiconpath + "herald.png"
+
+        if (BountyBlue):
+            BlueBar["DragonIcon"] = self.topiconpath + "dragon_bounty.png"
+            BlueBar["TurretIcon"] = self.topiconpath + "turret_bounty.png"
+        elif (BountyRed):
+            RedBar["DragonIcon"] = self.topiconpath + "dragon_bounty.png"
+            RedBar["TurretIcon"] = self.topiconpath + "turret_bounty.png"
+            
         return BlueBar,RedBar
 
     def getDragon(self):
@@ -280,6 +297,18 @@ class VCSIngame:
     def getObject(self):
         Baron = []
         Elder = []
+        BaronData = {
+            "TimerRemain" : 0,
+            "PowerPlay" : 0,
+            "GoldOnBaron" : 0,
+            "TeamTaken" : 0,
+            "Background" : 0,
+        }
+        ElderData = {
+            "TimerRemain" : 0,
+            "TeamTaken" : 0,
+            "Background" : 0,
+        }
         for event in self.events:
             if (event["eventname"] == "OnKillWorm_Spectator"):
                 Baron.append(event)
@@ -287,36 +316,57 @@ class VCSIngame:
                 Elder.append(event)
                 
         if (len(Baron) == 0):
-            self.barontimeremain = 0
-            self.baronpowerplay = 0
-            self.goldonbaron = 0
-            self.baronteamtaken = ""
-            self.baronbackground = self.timericonpath+"None.png"
+            BaronData["TimerRemain"] = 0
+            BaronData["PowerPlay"] = 0
+            BaronData["GoldOnBaron"] = 0
+            BaronData["TeamTaken"] = ""
+            BaronData["Background"] = self.timericonpath+"None.png"
         elif (Baron[-1]["eventTime"]+180>self.timer):
-            self.barontimeremain = Baron[-1]["eventTime"] + 180
-            self.goldonbaron = Baron[-1]["gold@team"]
-            self.baronteamtaken = ("Blue" if Baron[-1]["sourceTeam"] == "Order" else "Red")
-            self.baronbackground = self.timericonpath+"Baron_BG_" + self.baronteamtaken + ".png"
+            BaronData["TimerRemain"] = Baron[-1]["eventTime"] + 180
+            BaronData["GoldOnBaron"] = Baron[-1]["gold@team"]
+            BaronData["TeamTaken"] = ("Blue" if Baron[-1]["sourceTeam"] == "Order" else "Red")
+            BaronData["Background"] = self.timericonpath+"Baron_BG_" + BaronData["TeamTaken"] + ".png"
+            if (BaronData["TeamTaken"] == "Blue"):
+                BaronData["PowerPlay"] = (self.gold["blue"]-self.gold["red"]) - BaronData["GoldOnBaron"]
+            elif (BaronData["TeamTaken"] == "Red"):
+                BaronData["PowerPlay"] = (self.gold["red"]-self.gold["blue"]) - BaronData["GoldOnBaron"]
         else:
-            self.barontimeremain = 0
-            self.baronpowerplay = 0
-            self.goldonbaron = 0
-            self.baronteamtaken = ""
-            self.baronbackground = self.timericonpath+"None.png"
+            BaronData["TimerRemain"] = 0
+            BaronData["PowerPlay"] = 0
+            BaronData["GoldOnBaron"] = 0
+            BaronData["TeamTaken"] = ""
+            BaronData["Background"] = self.timericonpath+"None.png"
         
         if (len(Elder) == 0):
-            self.eldertimeremain = 0
-            self.elderteamtaken = ""
-            self.elderbackground = self.timericonpath+"None.png"
+            ElderData["TimerRemain"] = 0
+            ElderData["TeamTaken"] = ""
+            ElderData["Background"] = self.timericonpath+"None.png"
         elif (Elder[-1]["eventTime"]+150>self.timer):
-            self.eldertimeremain = Elder[-1]["eventTime"] + 150
-            self.elderteamtaken = ("Blue" if Elder[-1]["sourceTeam"] == "Order" else "Red")
-            self.elderbackground = self.timericonpath+"Dragon_BG_" + self.elderteamtaken + ".png"
+            ElderData["TimerRemain"] = Elder[-1]["eventTime"] + 150
+            ElderData["TeamTaken"] = ("Blue" if Elder[-1]["sourceTeam"] == "Order" else "Red")
+            ElderData["Background"] = self.timericonpath+"Dragon_BG_" + ElderData["TeamTaken"] + ".png"
         else:
-            self.eldertimeremain = 0
-            self.elderteamtaken = ""
-            self.elderbackground = self.timericonpath+"None.png"
-        
+            ElderData["TimerRemain"] = 0
+            ElderData["TeamTaken"] = ""
+            ElderData["Background"] = self.timericonpath+"None.png"
+        return BaronData, ElderData
+    
+    def getOverlay(self):
+        Ace = []
+        Data = {
+            "Ace": self.overlaypath + "None.png",
+        }
+        for event in self.events:
+            if (event["eventname"] == "OnAce"):
+                Ace.append(event)
+        if (len(Ace) == 0):
+            return Data
+        elif (Ace[-1]["eventTime"]+10>self.timer and Ace[-1]["eventTime"]<self.timer):
+            Data["Ace"] = self.overlaypath + "ace00001.png"
+            return Data
+        else:
+            return Data
+                
     def vmixfunc(self, func, input, selectedname = "", value = "", ):
         url = self.VmixAPI + func + "&Input=" + input + "&SelectedName=" + selectedname + "&Value=" + value 
         try:
